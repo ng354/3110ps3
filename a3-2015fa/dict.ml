@@ -272,7 +272,9 @@ end
 
 (******************************************************************)
 (* BTDict: a functor that implements our DICT signature           *)
-(* using a balanced tree (2-3 trees)                              *)
+(* using a balanced tree (2-3 trees)
+takes in a dict arg and returns a dict
+use D.compare for comparison between keys.                        *)
 (******************************************************************)
 (*
 module BTDict(D:DICT_ARG) : (DICT with type key = D.key

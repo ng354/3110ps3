@@ -112,6 +112,7 @@ struct
     match xs with
       | [] -> true
       | _ -> false
+
   let singleton x = [x]
   let rec insert x xs =
     match xs with
@@ -151,6 +152,7 @@ struct
     match xs with
       | [] -> None
       | x::rest -> Some (x,rest)
+
   let fold f e = List.fold_left (fun a x -> f x a) e
 
   let string_of_elt = C.string_of_t
