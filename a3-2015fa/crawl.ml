@@ -69,7 +69,7 @@ let modify_link_set (l : link) (d : WordDict.dict) (wrd : string) : WordDict.dic
   WordDict.insert d wrd new_set
 
 (*adding the keys and the modified linksets in the dictionary*)
-let rec init_dic dict ky_lst lnk : dict =
+let rec init_dic dict ky_lst lnk : WordDict.dict =
 match ky_lst  with
 |[] -> dict
 |h::t -> init_dic (modify_link_set lnk dict h) t lnk
@@ -80,17 +80,22 @@ match lst with
 |[] -> []
 |h::t -> h::(remove_duplicates (List.filter (fun x -> x <> h) t))
 
-let remove_link_from_front (lnk: link) (frnt: LinkSet.set) =
-    (*link list of all links on that page*)
-    let updated_frontier = add_link_to_frontier (get_page lnk).links frnt in
-    remove lnk updated_frontier
+let get_opt opt =
+  match opt with
+  | None -> raise (Invalid_argument "Option.get")
+  | Some x -> x
 
 (*adds link to the frontier if it doesnt exist already*)
-let rec add_link_to_frontier (lst : link list) (frnt : LinkSet.set) =
+let rec add_link_to_frontier (lst : link list) (frnt : LinkSet.set)  =
 match lst with
 |[] -> frnt
 |h::t -> add_link_to_frontier t (insert h frnt)
 
+let remove_link_from_front (lnk: link) (frnt: LinkSet.set) =
+  (*link list of all links on that page*)
+  let page_link = get_opt(get_page lnk) in
+  let updated_frontier = add_link_to_frontier page_link.links frnt in
+  remove lnk updated_frontier
 
 (* TODO: Build an index as follows:
  *
@@ -115,11 +120,11 @@ let rec crawl (n:int) (frontier: LinkSet.set)
   when n reaches 0 and when frontier is empty just return d the dictionary   *)
 
   (*chosen is a link*)
-  let (chosen, new_front) = choose frontier in
+  let (chosen, new_front) = get_opt(choose frontier) in
   (*the page for that link*)
-  let chosens_page = get_page chosen in
+  let chosens_page = get_opt(get_page chosen) in
   (*list of string of all words on that page*)
-  let page_word_list =  remove_duplicates chosens_page.words in
+  let page_word_list = remove_duplicates chosens_page.words in
   (*updated dictionary with keys and link set values*)
   let updated_dict = init_dic d page_word_list chosen in
 
