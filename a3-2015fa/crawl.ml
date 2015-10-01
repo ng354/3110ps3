@@ -120,22 +120,23 @@ let rec crawl (n:int) (frontier: LinkSet.set)
   when n reaches 0 and when frontier is empty just return d the dictionary   *)
 
   (*chosen is a link*)
-  let (chosen, new_front) = get_opt(choose frontier) in
-  (*the page for that link*)
-  let chosens_page = get_opt(get_page chosen) in
-  (*list of string of all words on that page*)
-  let page_word_list = remove_duplicates chosens_page.words in
-  (*updated dictionary with keys and link set values*)
-  let updated_dict = init_dic d page_word_list chosen in
+  if n=0 || is_empty(frontier) then
+    d
+  else
+    let (chosen, new_front) = get_opt(choose frontier) in
+    (*the page for that link*)
+    let chosens_page = get_opt(get_page chosen) in
+    (*list of string of all words on that page*)
+    let page_word_list = remove_duplicates chosens_page.words in
+    (*updated dictionary with keys and link set values*)
+    let updated_dict = init_dic d page_word_list chosen in
 
-  let updated_front = remove_link_from_front chosen frontier in
+    let updated_front = remove_link_from_front chosen frontier in
 
-  let updated_visit = insert chosen visited in
+    let updated_visit = insert chosen visited in
 
-
-   crawl (n-1) updated_front updated_visit updated_dict
-
-  (*stop when you reach n or when the frontier is empty*)
+    crawl (n-1) updated_front updated_visit updated_dict
+    (*stop when you reach n or when the frontier is empty*)
 
 
 
