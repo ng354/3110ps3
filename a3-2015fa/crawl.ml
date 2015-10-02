@@ -86,15 +86,21 @@ let get_opt opt =
   | Some x -> x
 
 (*adds link to the frontier if it doesnt exist already*)
-let rec add_link_to_frontier (lst : link list) (frnt : LinkSet.set)  =
+let rec add_link_to_frontier (lst : link list) (frnt : LinkSet.set)
+                              (visited : LinkSet.set) =
 match lst with
-|[] -> frnt
-|h::t -> add_link_to_frontier t (insert h frnt)
+| [] -> frnt
+| h::t ->
+  if member visited h then
+    add_link_to_frontier t frnt visited
+  else
+    add_link_to_frontier t (insert h frnt) visited
 
-let remove_link_from_front (lnk: link) (frnt: LinkSet.set) =
+let remove_link_from_front (lnk : link) (frnt : LinkSet.set)
+                          (visited : LinkSet.set) =
   (*link list of all links on that page*)
   let page_link = get_opt(get_page lnk) in
-  let updated_frontier = add_link_to_frontier page_link.links frnt in
+  let updated_frontier = add_link_to_frontier page_link.links frnt visited in
   remove lnk updated_frontier
 
 (* TODO: Build an index as follows:
@@ -118,7 +124,6 @@ let rec crawl (n:int) (frontier: LinkSet.set)
   use compare when adding the new key into the dictionary
 
   when n reaches 0 and when frontier is empty just return d the dictionary   *)
-
   (*chosen is a link*)
   if n=0 || is_empty(frontier) then
     d
@@ -126,12 +131,15 @@ let rec crawl (n:int) (frontier: LinkSet.set)
     let (chosen, new_front) = get_opt(choose frontier) in
     (*the page for that link*)
     let chosens_page = get_opt(get_page chosen) in
+
+    if member visited chosen then
+      crawl n new_front visited d
+    else
     (*list of string of all words on that page*)
     let page_word_list = remove_duplicates chosens_page.words in
     (*updated dictionary with keys and link set values*)
     let updated_dict = init_dic d page_word_list chosen in
-
-    let updated_front = remove_link_from_front chosen frontier in
+    let updated_front = remove_link_from_front chosen frontier visited in
 
     let updated_visit = insert chosen visited in
 

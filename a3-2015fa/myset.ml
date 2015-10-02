@@ -228,21 +228,75 @@ end
 (* DictSet: a functor that creates a SET by calling our           *)
 (* Dict.Make functor                                              *)
 (******************************************************************)
-(*
+
 module DictSet(C : COMPARABLE) : (SET with type elt = C.t) =
 struct
   module D = Dict.Make(struct
-      ??? fill this in!
+    type key = C.t
+    type value = unit
+    let compare = C.compare
+    let string_of_key = C.string_of_t
+    let string_of_value _ = ""
+
+    (* These functions are for testing purposes *)
+    let gen_key () = C.gen ()
+    let gen_key_gt x () = gen_key ()
+    let gen_key_lt x () = gen_key ()
+    let gen_key_random () = gen_key ()
+    let gen_key_between x y () = None
+    let gen_value () = ()
+    let gen_pair () = (gen_key (), gen_value ())
   end)
 
   type elt = D.key
   type set = D.dict
-  let empty = ???
 
-  (* implement the rest of the functions in the signature! *)
+  (* returns empty Dictset *)
+  let empty = D.empty
 
-  let string_of_elt = D.string_of_key
-  let string_of_set s = D.string_of_dict s
+  let is_empty s = s=empty
+
+  (* insert : elt -> set -> set *)
+  let insert k s = D.insert s k ()
+
+  (* same as insert x empty *)
+  (* let singleton : elt -> set *)
+  let singleton k = D.insert empty k ()
+
+  let union s1 s2 =
+    D.fold (fun k () d -> insert k d) s1 s2
+
+  let intersect s1 s2 =
+    D.fold (fun k () d -> if D.member s2 k then insert k d else d) empty s1
+
+  (* remove an element from the set -- if the
+   * element isn't present, does nothing. *)
+  let remove k s =
+    D.remove s k
+
+  (* returns true iff the element is in the set *)
+  let member s k =
+    D.member s k
+
+  (* chooses some member from the set, removes it
+   * and returns that element plus the new set.
+   * If the set is empty, returns None. *)
+  let choose s =
+    match D.choose s with
+    | None -> None
+    | Some(k,v,s1) -> Some(k,s1)
+
+  (* fold a function across the elements of the set
+   * in some unspecified order. *)
+  let fold f a s =
+    D.fold (fun elem () acc -> f elem acc) a s
+
+  (* functions to convert our types to a string. useful for debugging. *)
+  let string_of_set s =
+    D.string_of_dict s
+
+  let string_of_elt k =
+    D.string_of_key k
 
   (****************************************************************)
   (* Tests for our DictSet functor                                *)
@@ -251,11 +305,32 @@ struct
   (* comprehensive tests to test ALL your functions.              *)
   (****************************************************************)
 
+  (* let test_empty () =  *)
+
+  (* Test insertion into empty set *)
+  let test_insert () =
+    let elt = C.gen_random () in
+    let s1 = insert elt empty in
+    assert(member s1 elt);
+    ()
+
+  (* Test insertion into non-empty set *)
+  let test_insert_2 () =
+    let elt = C.gen_random () in
+    let s1 = insert elt empty in
+    let elt2 = C.gen_random () in
+    let new_s1 = insert elt2 s1 in
+    assert(member s1 elt);
+    assert(member new_s1 elt);
+    ()
+
   (* add your test functions to run_tests *)
   let run_tests () =
+    test_insert () ;
+    test_insert_2 () ;
     ()
 end
-*)
+
 
 
 
