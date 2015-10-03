@@ -276,7 +276,7 @@ end
 takes in a dict arg and returns a dict
 use D.compare for comparison between keys.                        *)
 (******************************************************************)
-(*
+
 module BTDict(D:DICT_ARG) : (DICT with type key = D.key
 with type value = D.value) =
 struct
@@ -359,9 +359,9 @@ struct
 
   (* TODO:
    * Implement these to-string functions *)
-  let string_of_key = raise TODO
-  let string_of_value = raise TODO
-  let string_of_dict (d: dict) : string = raise TODO
+  let string_of_key k = D.string_of_key k
+  let string_of_value v = D.string_of_value v
+  let string_of_dict (d: dict) : string = "TODO "
 
   (* Debugging function. This will print out the tree in text format.
    * Use this function to see the actual structure of your 2-3 tree. *
@@ -377,7 +377,7 @@ struct
    *
    * Note that this tree is NOT balanced, because all the paths from (6,f)
    * to its leaves do NOT all have the same length. *)
-  let rec string_of_tree (d: dict) : string =
+(*   let rec string_of_tree (d: dict) : string =
     match d with
       | Leaf -> "Leaf"
       | Two(left,(k,v),right) -> "Two(" ^ (string_of_tree left)
@@ -395,7 +395,7 @@ struct
    * result of performing the upward phase on w. *)
   let insert_upward_two (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (x_other: dict) : kicked =
-    raise TODO
+    raise TODO *)
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children,
@@ -634,6 +634,39 @@ struct
   let choose (d: dict) : (key * value * dict) option =
     raise TODO
 
+
+  (* [tree_path_length d] returns an int of the length (which we consider
+   * the total number of nodes from root to all of its leaves) of a tree
+   * - [d] is the current root of the tree
+   *
+   * We know that a Leaf to itself is length 0, a Two to its leaves is length
+   * 1. However, we consider a Three to it's leaves length 1 as well, and not
+   * 2. This is so that we can account for when a tree has both Two AND Three
+   * nodes, so we try to simulate Three nodes as Two nodes.
+   *
+   * This goes the same for the case when the root is a Three to other nodes,
+   * We calculate the two path lengths of the left/middle and middle/right
+   * trees, as if the left key and right key of that Three node were two
+   * separate Two nodes. If those separate values are equal, then
+   * transitively, we know that left/right would also be equal, and we
+   * return the path_length for just one of those simulated Two nodes.
+   * If they are not equal, then we return -1, which will always cause our
+   * [balanced] function to fail, since we now know that left/middle/right
+   * paths are not equal.
+    *)
+  let rec tree_path_length (d: dict) : int =
+    match d with
+      | Leaf -> 0
+      | Two(Leaf,(k1,v1),Leaf) -> 1
+      | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) -> 1
+      | Two(l,n,r) -> 1+tree_path_length(l)+tree_path_length(r)
+      | Three(l,n1,m,n2,r) ->
+        if ((1+tree_path_length(l)+tree_path_length(m)=
+            1+tree_path_length(m)+tree_path_length(r))) then
+          1+tree_path_length(l)+tree_path_length(m)
+        else
+          -1
+
   (* TODO:
    * Write a function that when given a 2-3 tree (represented by our
    * dictionary d), returns true if and only if the tree is "balanced",
@@ -642,10 +675,30 @@ struct
 
   (* How are you testing that you tree is balanced?
    * ANSWER:
-   *    _______________
+   *   First, the base cases are a Leaf, a Two to Leaf, or a Three to leaf,
+   *   Each of these base cases will be true, because a Leaf is length=0,
+   *   a Two to a Leaf will have both directions have length=1,
+   *   and a Three to Leaf will have all 3 directions have length=1.
+   *
+   *   For the case that the tree is a Two or Three to other types of nodes, we
+   *   call a recursive helper function, tree_path_length, which computes
+   *   the path lengths of the left, right, and possibly middle trees.
+   *   Using this, for a Two, we only need to check that l and r have equal
+   *   path lengths. For a Three, we must ensure that all three directions
+   *   have equal path lengths. we can check just l=r and r=m, because
+   *   transitively, if l=r and r=m, then l=m.
+   *
+   *   See the comments for tree_path_length for a description there.
    *)
-  let rec balanced (d: dict) : bool =
-    raise TODO
+  let balanced (d: dict) : bool =
+    match d with
+      | Leaf -> true
+      | Two(Leaf,(k1,v1),Leaf) -> true
+      | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) -> true
+      | Two(l,n,r) -> tree_path_length(l)=tree_path_length(r)
+      | Three(l,n1,m,n2,r) ->
+        tree_path_length(l)=tree_path_length(r) &&
+        tree_path_length(r)=tree_path_length(m)
 
 
   (********************************************************************)
@@ -678,7 +731,7 @@ struct
     else
       (D.gen_key_random(), D.gen_value()) :: (generate_random_list (size - 1))
 
-(*
+
   let test_balance () =
     let d1 = Leaf in
     assert(balanced d1) ;
@@ -718,7 +771,7 @@ struct
                    D.gen_pair(),Leaf,D.gen_pair(),Two(Leaf,D.gen_pair(),Leaf))
     in
     assert(not (balanced d7)) ;
-    () *)
+    ()
 
 (*
   let test_remove_nothing () =
@@ -776,7 +829,7 @@ struct
     () *)
 
   let run_tests () =
-(*    test_balance() ; *)
+   test_balance() ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
@@ -785,7 +838,6 @@ struct
     ()
 
 end
-*)
 
 
 
@@ -803,10 +855,10 @@ let _ = IntStringListDict.run_tests()
  *
  * Uncomment out the lines below when you are ready to test your
  * 2-3 tree implementation. *)
-(*
+
 module IntStringBTDict = BTDict(IntStringDictArg)
 let _ = IntStringBTDict.run_tests()
-*)
+
 
 
 
