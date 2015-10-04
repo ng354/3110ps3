@@ -352,16 +352,36 @@ struct
   (* How do we represent an empty dictionary with 2-3 trees? *)
   let empty : dict = Leaf
 
+  (* val fold : (key -> value -> 'a -> 'a) -> 'a -> dict -> 'a
+* If our dictionary is the (key,value) pairs (in any order)
+   *      (k1,v1), (k2,v2), (k3,v3), ... (kn,vn)
+   * then fold should return:
+   *      f k1 v1 (f k2 v2 (f k3 v3 (f ... (f kn vn u))))*)
   (* TODO:
    * Implement fold. Read the specification in the DICT signature above. *)
   let rec fold (f: key -> value -> 'a -> 'a) (u: 'a) (d: dict) : 'a =
-    raise TODO
+    match d with
+    | Leaf -> u
+    | Two(Leaf,(k1,v1),Leaf) -> f k1 v1 u
+    | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) -> f k1 v1 (f k2 v2 u)
+    | Two(l,(k1,v1),r) ->
+      let left_u = fold f u l in
+      let node_u = f k1 v1 left_u in
+      fold f node_u r
+    | Three(l,(k1,v1),m,(k2,v2),r) ->
+      let left_u = fold f u l in
+      let node1_u = f k1 v1 left_u in
+      let mid_u = fold f node1_u m in
+      let node2_u = f k2 v2 mid_u in
+      fold f node2_u r
 
   (* TODO:
    * Implement these to-string functions *)
   let string_of_key k = D.string_of_key k
   let string_of_value v = D.string_of_value v
-  let string_of_dict (d: dict) : string = "TODO "
+  let string_of_dict (d: dict) : string =
+    fold (fun k v a -> a^"Key: "^(string_of_key k)^
+    ", Value: "^(string_of_value v)^"\n") "Dict: " d
 
   (* Debugging function. This will print out the tree in text format.
    * Use this function to see the actual structure of your 2-3 tree. *
@@ -619,7 +639,35 @@ struct
    * in our dictionary and returns it as an option, or return None
    * if the key is not in our dictionary. *)
   let rec lookup (d: dict) (k: key) : value option =
-    raise TODO
+    match d with
+    | Leaf -> None
+    | Two(Leaf,(k1,v1),Leaf) -> if k=k1 then Some v1 else None
+    | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) ->
+      if k=k1 then
+        Some v1
+      else if k=k2 then
+        Some v2
+      else
+        None
+    | Two(l,(k1,v1),r) ->
+      if k=k1 then
+        Some v1
+      else if k<k1 then
+        lookup l k
+      else
+        lookup r k
+    | Three(l,(k1,v1),m,(k2,v2),r) ->
+      if k=k1 then
+        Some v1
+      else if k=k2 then
+        Some v2
+      else if k<k1 then
+        lookup l k
+      else if k<k2 then
+        lookup m k
+      else
+        lookup r k
+
 
   (* TODO:
    * Write a function to test if a given key is in our dictionary *)
@@ -731,6 +779,61 @@ struct
     else
       (D.gen_key_random(), D.gen_value()) :: (generate_random_list (size - 1))
 
+  (* Tests fold on four cases, each using an incrementing function.
+   * If the result of fold equals the number of pairs in the tree, fold is
+   * successful *)
+  let test_fold () =
+    let d1 = Leaf in
+    let fold1 = fold (fun k v a -> a+1) 0 d1 in
+    assert(fold1=0) ;
+
+    let d2 = Two(Leaf,D.gen_pair(),Leaf) in
+    let fold2 = fold (fun k v a -> a+1) 0 d2 in
+    assert(fold2 = 1) ;
+
+    let d3 = Three(Leaf,D.gen_pair(),Leaf,D.gen_pair(),Leaf) in
+    let fold3 = fold (fun k v a -> a+1) 0 d3 in
+    assert(fold3 = 2) ;
+
+    let d4 = Three(Two(Two(Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                           Two(Leaf,D.gen_pair(),Leaf)),
+                       D.gen_pair(),Two(Two(Leaf,D.gen_pair(),Leaf),
+                                        D.gen_pair(),
+                                        Two(Leaf,D.gen_pair(),Leaf))),
+                   D.gen_pair(),
+                   Two(Two(Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                           Two(Leaf,D.gen_pair(),Leaf)),D.gen_pair(),
+                       Two(Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                           Two(Leaf,D.gen_pair(),Leaf))),D.gen_pair(),
+                   Two(Two(Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                           Two(Leaf,D.gen_pair(),Leaf)),D.gen_pair(),
+                       Three(Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                             Two(Leaf,D.gen_pair(),Leaf),D.gen_pair(),
+                             Three(Leaf,D.gen_pair(),Leaf,D.gen_pair(),Leaf))))
+    in
+    let fold4 = fold (fun k v a -> a+1) 0 d4 in
+    assert(fold4 = 26) ;
+    ()
+
+  (* TODO, figure out a better way to test this *)
+    let test_string_of_key () =
+    let k = D.gen_key() in
+    assert((string_of_key k)=D.string_of_key k) ;
+    ()
+
+  let test_string_of_value () =
+    let v = D.gen_value() in
+    assert((string_of_value v)=D.string_of_value v) ;
+    ()
+
+  let test_string_of_dict () =
+    let pair1 = D.gen_pair() in
+    let d = Two(Leaf,pair1,Leaf) in
+    let d_string = string_of_dict d in
+    let correct_string = "Dict: Key: "^(string_of_key(fst pair1))^", Value: "^
+          (string_of_value(snd pair1))^"\n" in
+    assert(d_string = correct_string);
+    ()
 
   let test_balance () =
     let d1 = Leaf in
@@ -772,6 +875,12 @@ struct
     in
     assert(not (balanced d7)) ;
     ()
+
+    let test_lookup () =
+      let d1 = Leaf in
+      let looked_up = lookup d1 (D.gen_key ()) in
+      assert(looked_up = None);
+      ()
 
 (*
   let test_remove_nothing () =
@@ -830,6 +939,11 @@ struct
 
   let run_tests () =
    test_balance() ;
+   test_fold() ;
+   test_string_of_key() ;
+   test_string_of_value () ;
+   test_string_of_dict () ;
+   test_lookup () ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;

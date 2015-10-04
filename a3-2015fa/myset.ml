@@ -523,16 +523,13 @@ struct
     | Invalid_argument("Option.get") ->
     ()
 
-  (* Test fold one 2 element set, replacing both with another element twice *)
+  (* Test fold one 2 element set, incrementing by 1 both times *)
   let test_fold_1 () =
-    let elt = C.gen_random () in
     let elt1 = C.gen_random () in
     let elt2 = C.gen_random () in
     let s = insert elt2 (singleton elt1) in
-    let new_s = fold (fun elmt d -> insert elt d) empty s in
-    assert(member new_s elt);
-    let newer_s = remove elt new_s in
-    assert(is_empty newer_s);
+    let new_s = fold (fun elmt d -> d+1) 0 s in
+    assert(new_s=2);
     ()
 
   (* Test fold on empty set w/ fxn to duplicate set *)
