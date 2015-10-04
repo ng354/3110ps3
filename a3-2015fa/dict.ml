@@ -998,6 +998,58 @@ struct
       ()
     | _ -> failwith "We shouldn't be here"
 
+  let match_insert_upward_three_helper new_node root_key left_key right_key leaf1 leaf2 leaf3 leaf4 () =
+    match new_node with
+    | Done(Two(left, (node_key, node_val), right)) ->
+      assert(D.compare node_key root_key = Eq);
+      let test_left =
+        (match left with
+        | Two(a, (l_key, left_val), b) ->
+          assert(D.compare l_key left_key = Eq);
+          let test_a =
+            (match a with
+            | Two(Leaf, (a_key,a_val), Leaf) ->
+              assert(D.compare a_key leaf1 = Eq);
+              ()
+            | _ -> failwith "We shouldn't be here")
+          in
+          let test_b =
+            (match b with
+            | Two(Leaf, (b_key, b_val), Leaf) ->
+              assert(D.compare b_key leaf2 = Eq);
+              ()
+            | _ -> failwith "We shouldn't be here") in
+            let () = test_a in
+            test_b
+        | _ -> failwith "We shouldn't be here")
+      in
+
+      let test_right =
+      (match right with
+      | Two(c, (r_key, right_val), d) ->
+        assert(D.compare r_key right_key = Eq);
+        let test_c =
+          (match c with
+          | Two(Leaf, (c_key,c_val), Leaf) ->
+            assert(D.compare c_key leaf3 = Eq);
+            ()
+          | _ -> failwith "We shouldn't be here")
+        in
+        let test_d =
+          (match d with
+          | Two(Leaf, (d_key, d_val), Leaf) ->
+            assert(D.compare d_key leaf4 = Eq);
+            ()
+          | _ -> failwith "We shouldn't be here")
+        in
+        let () = test_c in
+        test_d
+      | _ -> failwith "We shouldn't be here")
+      in
+      let () = test_left in
+      test_right
+    | _ -> failwith "We shouldn't be here"
+
   (* Check the kick up for first case, w<X<Y *)
   let test_insert_updward_three_wxy () =
     let w_key = D.gen_key() in
@@ -1019,56 +1071,9 @@ struct
     let other_right = Two(Leaf,(other_right_key,D.gen_value()),Leaf) in
     let new_node = insert_upward_three w w_left w_right
                                       x y other_left other_right in
-    match new_node with
-    | Done(Two(left, (node_key, node_val), right)) ->
-      assert(D.compare node_key x_key = Eq);
-      let test_left =
-        (match left with
-        | Two(a, (left_key, left_val), b) ->
-          assert(D.compare left_key w_key = Eq);
-          let test_a =
-            (match a with
-            | Two(Leaf, (a_key,a_val), Leaf) ->
-              assert(D.compare a_key w_left_key = Eq);
-              ()
-            | _ -> failwith "We shouldn't be here")
-          in
-          let test_b =
-            (match b with
-            | Two(Leaf, (b_key, b_val), Leaf) ->
-              assert(D.compare b_key w_right_key = Eq);
-              ()
-            | _ -> failwith "We shouldn't be here") in
-            let () = test_a in
-            test_b
-        | _ -> failwith "We shouldn't be here")
-      in
-
-      let test_right =
-      (match right with
-      | Two(c, (right_key, right_val), d) ->
-        assert(D.compare right_key y_key = Eq);
-        let test_c =
-          (match c with
-          | Two(Leaf, (c_key,c_val), Leaf) ->
-            assert(D.compare c_key other_left_key = Eq);
-            ()
-          | _ -> failwith "We shouldn't be here")
-        in
-        let test_d =
-          (match d with
-          | Two(Leaf, (d_key, d_val), Leaf) ->
-            assert(D.compare d_key other_right_key = Eq);
-            ()
-          | _ -> failwith "We shouldn't be here")
-        in
-        let () = test_c in
-        test_d
-      | _ -> failwith "We shouldn't be here")
-      in
-      let () = test_left in
-      test_right
-    | _ -> failwith "We shouldn't be here"
+    match_insert_upward_three_helper new_node x_key w_key y_key
+                                    w_left_key w_right_key
+                                    other_left_key other_right_key ()
 
 
 (*
