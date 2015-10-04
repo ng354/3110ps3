@@ -397,7 +397,7 @@ struct
    *
    * Note that this tree is NOT balanced, because all the paths from (6,f)
    * to its leaves do NOT all have the same length. *)
-(*   let rec string_of_tree (d: dict) : string =
+  let rec string_of_tree (d: dict) : string =
     match d with
       | Leaf -> "Leaf"
       | Two(left,(k,v),right) -> "Two(" ^ (string_of_tree left)
@@ -415,7 +415,12 @@ struct
    * result of performing the upward phase on w. *)
   let insert_upward_two (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (x_other: dict) : kicked =
-    raise TODO *)
+    if D.compare (fst w) (fst x) = Less then
+      let new_node = Three(w_left, w, w_right, x, x_other) in
+      Done new_node
+    else
+      let new_node = Three(x_other, x, w_left, w, w_right) in
+      Done new_node
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children,
@@ -431,7 +436,22 @@ struct
    * new tree as a result of performing the upward phase on w. *)
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
-    raise TODO
+      (* w<X<Y, first case *)
+      if D.compare (fst w) (fst x) = Less then
+        let new_node = Two(Two(w_left,w, w_right), x,
+                          Two(other_left, y, other_right)) in
+        Done new_node
+      (* X<w<Y, second case *)
+      else if D.compare (fst w) (fst y)=Less then
+        let new_node = Two(Two(other_left, x, w_left), w,
+                          Two(w_right, y, other_right)) in
+        Done new_node
+      (* X<Y<w, third case *)
+      else
+        let new_node = Two(Two(other_left, x, other_right), y,
+                          Two(w_left, w, w_right)) in
+        Done new_node
+
 
   (* Downward phase for inserting (k,v) into our dictionary d.
    * The downward phase returns a "kicked" up configuration, where
@@ -940,6 +960,116 @@ struct
     assert(not(member d4 (D.gen_key_random())));
     ()
 
+  let test_insert_upward_two_wx () =
+    (* Check the kick up for w<X *)
+    let x_key = D.gen_key() in
+    let x_val = D.gen_value() in
+    let x = (x_key,x_val) in
+    let w_key = D.gen_key_lt x_key () in
+    let w_val = D.gen_value() in
+    let w = (w_key,w_val) in
+    let x_other = Leaf in
+    let w_left = Leaf in
+    let w_right = Leaf in
+    let three_wx = insert_upward_two w w_left w_right x x_other in
+    match three_wx with
+    | Done(Three(Leaf, left_pair, Leaf, right_pair, Leaf)) ->
+      assert(D.compare (fst left_pair) w_key = Eq) ;
+      assert(D.compare (fst right_pair) x_key = Eq) ;
+      ()
+    | _ -> failwith "We shouldn't be here"
+
+  let test_insert_upward_two_xw () =
+    (* Check the kick up for x<w *)
+    let x_key = D.gen_key() in
+    let x_val = D.gen_value() in
+    let x = (x_key,x_val) in
+    let w_key = D.gen_key_gt x_key () in
+    let w_val = D.gen_value() in
+    let w = (w_key,w_val) in
+    let x_other = Leaf in
+    let w_left = Leaf in
+    let w_right = Leaf in
+    let three_wx = insert_upward_two w w_left w_right x x_other in
+    match three_wx with
+    | Done(Three(Leaf, left_pair, Leaf, right_pair, Leaf)) ->
+      assert(D.compare (fst left_pair) x_key = Eq) ;
+      assert(D.compare (fst right_pair) w_key = Eq) ;
+      ()
+    | _ -> failwith "We shouldn't be here"
+
+  (* Check the kick up for first case, w<X<Y *)
+  let test_insert_updward_three_wxy () =
+    let w_key = D.gen_key() in
+    let w = (w_key, D.gen_value()) in
+    let x_key = D.gen_key_gt w_key () in
+    let x = (x_key, D.gen_value()) in
+    let y_key = D.gen_key_gt x_key () in
+    let y = (y_key, D.gen_value()) in
+    let w_left_key = D.gen_key_random() in
+    let w_left = Two(Leaf,(w_left_key,D.gen_value()),Leaf) in
+
+    let w_right_key = D.gen_key_random() in
+    let w_right = Two(Leaf,(w_right_key,D.gen_value()),Leaf) in
+
+    let other_left_key = D.gen_key_random() in
+    let other_left = Two(Leaf,(other_left_key,D.gen_value()),Leaf) in
+
+    let other_right_key = D.gen_key_random() in
+    let other_right = Two(Leaf,(other_right_key,D.gen_value()),Leaf) in
+    let new_node = insert_upward_three w w_left w_right
+                                      x y other_left other_right in
+    match new_node with
+    | Done(Two(left, (node_key, node_val), right)) ->
+      assert(D.compare node_key x_key = Eq);
+      let test_left =
+        (match left with
+        | Two(a, (left_key, left_val), b) ->
+          assert(D.compare left_key w_key = Eq);
+          let test_a =
+            (match a with
+            | Two(Leaf, (a_key,a_val), Leaf) ->
+              assert(D.compare a_key w_left_key = Eq);
+              ()
+            | _ -> failwith "We shouldn't be here")
+          in
+          let test_b =
+            (match b with
+            | Two(Leaf, (b_key, b_val), Leaf) ->
+              assert(D.compare b_key w_right_key = Eq);
+              ()
+            | _ -> failwith "We shouldn't be here") in
+            let () = test_a in
+            test_b
+        | _ -> failwith "We shouldn't be here")
+      in
+
+      let test_right =
+      (match right with
+      | Two(c, (right_key, right_val), d) ->
+        assert(D.compare right_key y_key = Eq);
+        let test_c =
+          (match c with
+          | Two(Leaf, (c_key,c_val), Leaf) ->
+            assert(D.compare c_key other_left_key = Eq);
+            ()
+          | _ -> failwith "We shouldn't be here")
+        in
+        let test_d =
+          (match d with
+          | Two(Leaf, (d_key, d_val), Leaf) ->
+            assert(D.compare d_key other_right_key = Eq);
+            ()
+          | _ -> failwith "We shouldn't be here")
+        in
+        let () = test_c in
+        test_d
+      | _ -> failwith "We shouldn't be here")
+      in
+      let () = test_left in
+      test_right
+    | _ -> failwith "We shouldn't be here"
+
 
 (*
   let test_remove_nothing () =
@@ -1004,6 +1134,9 @@ struct
    test_string_of_dict () ;
    test_lookup () ;
    test_member () ;
+   test_insert_upward_two_wx () ;
+   test_insert_upward_two_xw () ;
+   test_insert_updward_three_wxy () ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
