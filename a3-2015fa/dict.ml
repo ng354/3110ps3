@@ -641,29 +641,29 @@ struct
   let rec lookup (d: dict) (k: key) : value option =
     match d with
     | Leaf -> None
-    | Two(Leaf,(k1,v1),Leaf) -> if k=k1 then Some v1 else None
+    | Two(Leaf,(k1,v1),Leaf) -> if (D.compare k k1)=Eq then Some v1 else None
     | Three(Leaf,(k1,v1),Leaf,(k2,v2),Leaf) ->
-      if k=k1 then
+      if (D.compare k k1)=Eq then
         Some v1
-      else if k=k2 then
+      else if (D.compare k k2)=Eq then
         Some v2
       else
         None
     | Two(l,(k1,v1),r) ->
-      if k=k1 then
+      if (D.compare k k1)=Eq then
         Some v1
-      else if k<k1 then
+      else if (D.compare k k1)=Less then
         lookup l k
       else
         lookup r k
     | Three(l,(k1,v1),m,(k2,v2),r) ->
-      if k=k1 then
+      if (D.compare k k1)=Eq then
         Some v1
-      else if k=k2 then
+      else if (D.compare k k2)=Eq then
         Some v2
-      else if k<k1 then
+      else if (D.compare k k1)=Less then
         lookup l k
-      else if k<k2 then
+      else if (D.compare k k2)=Less then
         lookup m k
       else
         lookup r k
@@ -672,7 +672,9 @@ struct
   (* TODO:
    * Write a function to test if a given key is in our dictionary *)
   let member (d: dict) (k: key) : bool =
-    raise TODO
+    match lookup d k with
+    | None -> false
+    | Some v -> true
 
   (* TODO:
    * Write a function that removes any (key,value) pair from our
@@ -878,9 +880,66 @@ struct
 
     let test_lookup () =
       let d1 = Leaf in
-      let looked_up = lookup d1 (D.gen_key ()) in
-      assert(looked_up = None);
+      let looked_up1 = lookup d1 (D.gen_key ()) in
+      assert(looked_up1 = None);
+
+      let k_d2 = D.gen_key() in
+      let v_d2 = D.gen_value() in
+      let d2 = Two(Leaf,(k_d2, v_d2),Leaf) in
+      let looked_up2 = lookup d2 k_d2 in
+      assert(looked_up2 = Some v_d2);
+
+      let k1_d3 = D.gen_key() in
+      let v1_d3 = D.gen_value() in
+      let d3 = Three(Leaf,(k1_d3, v1_d3),Leaf,(D.gen_pair()),Leaf) in
+      let looked_up3 = lookup d3 k1_d3 in
+      assert(looked_up3 = Some v1_d3);
+      let looked_up3_none = lookup d3 (D.gen_key_random()) in
+      assert(looked_up3_none=None);
+
+      let first_key = D.gen_key() in
+      let second_key = D.gen_key_gt first_key () in
+      let second_value = D.gen_value () in
+      let third_key = D.gen_key_gt second_key () in
+      let fourth_key = D.gen_key_gt third_key () in
+      let fourth_value = D.gen_value () in
+      let d4 = Three(Two(Leaf, (first_key,D.gen_value()),  Leaf),
+                (second_key,second_value), Leaf, (third_key,D.gen_value()),
+                Two(Leaf, (fourth_key,fourth_value), Leaf)) in
+      let lookedup4_second = lookup d4 second_key in
+      assert(lookedup4_second = Some second_value);
+      let lookedup4_fourth = lookup d4 fourth_key in
+      assert(lookedup4_fourth = Some fourth_value);
+      assert(lookup d4 (D.gen_key_random()) = None);
       ()
+
+  let test_member () =
+    let d1 = Leaf in
+    assert(not(member d1 (D.gen_key())));
+
+    let k_d2 = D.gen_key() in
+    let v_d2 = D.gen_value() in
+    let d2 = Two(Leaf,(k_d2, v_d2),Leaf) in
+    assert(member d2 k_d2 );
+
+    let k1_d3 = D.gen_key() in
+    let v1_d3 = D.gen_value() in
+    let d3 = Three(Leaf,(k1_d3, v1_d3),Leaf,(D.gen_pair()),Leaf) in
+    assert(member d3 k1_d3);
+    assert(not(member d3 (D.gen_key_random())));
+
+    let first_key = D.gen_key() in
+    let second_key = D.gen_key_gt first_key () in
+    let third_key = D.gen_key_gt second_key () in
+    let fourth_key = D.gen_key_gt third_key () in
+    let d4 = Three(Two(Leaf, (first_key,D.gen_value()),  Leaf),
+              (second_key,D.gen_value()), Leaf, (third_key,D.gen_value()),
+              Two(Leaf, (fourth_key,D.gen_value()), Leaf)) in
+    assert(member d4 first_key);
+    assert(member d4 third_key);
+    assert(not(member d4 (D.gen_key_random())));
+    ()
+
 
 (*
   let test_remove_nothing () =
@@ -944,6 +1003,7 @@ struct
    test_string_of_value () ;
    test_string_of_dict () ;
    test_lookup () ;
+   test_member () ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
