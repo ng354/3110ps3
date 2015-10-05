@@ -1076,6 +1076,59 @@ struct
                                     other_left_key other_right_key ()
 
 
+(* Check the kick up for second case, x<w<Y *)
+  let test_insert_updward_three_xwy () =
+    let x_key = D.gen_key() in
+    let x = (x_key, D.gen_value()) in
+    let w_key = D.gen_key_gt x_key () in
+    let w = (w_key, D.gen_value()) in
+    let y_key = D.gen_key_gt w_key () in
+    let y = (y_key, D.gen_value()) in
+    let x_left_key = D.gen_key_random() in
+    let x_left = Two(Leaf,(x_left_key,D.gen_value()),Leaf) in
+
+    let x_right_key = D.gen_key_random() in
+    let x_right = Two(Leaf,(x_right_key,D.gen_value()),Leaf) in
+
+    let other_left_key = D.gen_key_random() in
+    let other_left = Two(Leaf,(other_left_key,D.gen_value()),Leaf) in
+
+    let other_right_key = D.gen_key_random() in
+    let other_right = Two(Leaf,(other_right_key,D.gen_value()),Leaf) in
+    let new_node = insert_upward_three x x_left x_right
+                                      w y other_left other_right in
+    match_insert_upward_three_helper new_node w_key x_key y_key
+                                    x_left_key x_right_key
+                                    other_left_key other_right_key ()
+
+
+(* Check the kick up for third case, x<y<w *)
+  let test_insert_updward_three_xyw () =
+    let x_key = D.gen_key() in
+    let x = (x_key, D.gen_value()) in
+    let y_key = D.gen_key_gt x_key () in
+    let y = (y_key, D.gen_value()) in
+    let w_key = D.gen_key_gt y_key () in
+    let w = (w_key, D.gen_value()) in
+    let x_left_key = D.gen_key_random() in
+    let x_left = Two(Leaf,(x_left_key,D.gen_value()),Leaf) in
+
+    let x_right_key = D.gen_key_random() in
+    let x_right = Two(Leaf,(x_right_key,D.gen_value()),Leaf) in
+
+    let other_left_key = D.gen_key_random() in
+    let other_left = Two(Leaf,(other_left_key,D.gen_value()),Leaf) in
+
+    let other_right_key = D.gen_key_random() in
+    let other_right = Two(Leaf,(other_right_key,D.gen_value()),Leaf) in
+
+    let new_node = insert_upward_three x x_left x_right
+                                      y w other_left other_right in
+    match_insert_upward_three_helper new_node y_key x_key w_key
+                                    x_left_key x_right_key
+                                    other_left_key other_right_key ()
+
+
 (*
   let test_remove_nothing () =
     let pairs1 = generate_pair_list 26 in
@@ -1142,6 +1195,8 @@ struct
    test_insert_upward_two_wx () ;
    test_insert_upward_two_xw () ;
    test_insert_updward_three_wxy () ;
+   test_insert_updward_three_xwy () ;
+   test_insert_updward_three_xyw () ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
