@@ -415,12 +415,20 @@ struct
    * result of performing the upward phase on w. *)
   let insert_upward_two (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (x_other: dict) : kicked =
-    if D.compare (fst w) (fst x) = Less then
+      match D.compare (fst w) (fst x) with
+      | Eq -> Done(Two(w_left,w,w_right))
+      | Less ->
+        let new_node = Three(w_left, w, w_right, x, x_other) in
+        Done new_node
+      | Greater ->
+        let new_node = Three(x_other, x, w_left, w, w_right) in
+        Done new_node
+(*      if D.compare (fst w) (fst x) = Less then
       let new_node = Three(w_left, w, w_right, x, x_other) in
       Done new_node
     else
       let new_node = Three(x_other, x, w_left, w, w_right) in
-      Done new_node
+      Done new_node *)
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children,
@@ -451,6 +459,19 @@ struct
         let new_node = Two(Two(other_left, x, other_right), y,
                           Two(w_left, w, w_right)) in
         Done new_node
+        (*        match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
+       | Less, _ ->
+        let new_node = Two(Two(w_left,w, w_right), x,
+                          Two(other_left, y, other_right)) in
+        Done new_node
+       | Greater, Less ->
+        let new_node = Two(Two(other_left, x, w_left), w,
+                        Two(w_right, y, other_right)) in
+        Done new_node
+       | _, Greater ->
+        let new_node = Two(Two(other_left, x, other_right), y,
+                          Two(w_left, w, w_right)) in
+        Done new_node *)
 
 
   (* Downward phase for inserting (k,v) into our dictionary d.
@@ -504,12 +525,12 @@ struct
         let x = insert_downward left k v in
         (match x with
         | Up(l,n,r) -> insert_upward_two n l r (k1,v1) right
-        | Done(dic)     ->  x (* Done(Two(Two(l,(k,v),right),n,r)) *) )
+        | Done(dic) ->  Done(dic))
       |Greater ->
         let y = insert_downward right k v in
         (match y with
         | Up(l,n,r) -> insert_upward_two n l r (k1,v1) left
-        | Done(dic)     ->  y (* Done(Two(l,n,r)) *) )
+        | Done(dic) ->  Done(dic))
 
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
@@ -518,22 +539,23 @@ struct
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair)
       (left: dict) (middle: dict) (right: dict) : kicked =
     match (D.compare k k1), (D.compare k k2) with
+    | Eq, _ -> Done(Three(left, (k,v), middle, (k2,v2), right))
+    | _, Eq -> Done(Three(left, (k1,v1), middle, (k,v), right))
     | Less, _ ->
       let a = insert_downward left k v in
       (match a with
       | Up(l,n,r) -> insert_upward_three n l r (k1,v1) (k2,v2) middle right
-      | Done(dic)     -> a (* Done(Three(Two(left,(k,v),Leaf),(k1,v1),middle,(k2,v2),right)) *) )
+      | Done(dic) -> Done(dic) (* a *) (* Done(Three(Two(left,(k,v),Leaf),(k1,v1),middle,(k2,v2),right)) *) )
     |Greater, Less ->
       let b = insert_downward middle k v in
       (match b with
       | Up(l,n,r)  -> insert_upward_three (k1,v1) l r (k,v) (k2,v2) middle right
-      | Done(dic)      -> b (* Done(Three(left,(k1,v1),Two(middle,(k,v),Leaf),(k2,v2),right)) *) )
+      | Done(dic)      -> Done(dic) (* b *) (* Done(Three(left,(k1,v1),Two(middle,(k,v),Leaf),(k2,v2),right)) *) )
     | _, Greater ->
       let c = insert_downward right k v in
       (match c with
       | Up(l,n,m)  -> insert_upward_three (k1,v1) l m (k2,v2) (k,v) right Leaf
-      | Done(dic)      -> c  (* Done(Three(left,(k1,v1),middle,(k2,v2),Two(Leaf,(k,v),right))) *) )
-    |_,_ -> failwith "oh no"
+      | Done(dic)      -> Done(dic) (* c *)  (* Done(Three(left,(k1,v1),middle,(k2,v2),Two(Leaf,(k,v),right))) *) )
 
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
@@ -543,6 +565,7 @@ struct
     match insert_downward d k v with
       | Up(l,(k1,v1),r) -> Two(l,(k1,v1),r)
       | Done x -> x
+
 
   (* Upward phase for removal where the parent of the hole is a Two node.
    * See cases (1-2) on the handout. n is the (key,value) pair contained in
@@ -1159,6 +1182,85 @@ struct
                                     x_left_key x_right_key
                                     other_left_key other_right_key ()
 
+  (* Test basic insertions into empty and 1-level Two/Three nodes *)
+  let test_insert_basics () =
+    (* Insert element into empty tree *)
+    let dic = empty in
+    let k1 = D.gen_key() in
+    let v1 = D.gen_value() in
+    let one_elt_dic = insert dic k1 v1 in
+    assert(one_elt_dic = Two(Leaf, (k1,v1), Leaf));
+    (* Insert element k2>k1 into Two with node k1
+    * should be Three with k1 then k2 in node *)
+    let k4 = D.gen_key_gt k1 () in (* to be used later *)
+    let k2 = D.gen_key_gt k4 () in
+    let v2 = D.gen_value() in
+    let two_elt_dic = insert one_elt_dic k2 v2 in
+    assert(two_elt_dic = Three(Leaf,(k1,v1), Leaf, (k2,v2), Leaf));
+    (* Insert element k2 with different value, should update value *)
+    let v2_2 = D.gen_value () in
+    let updated_two_elt_dic = insert two_elt_dic k2 v2_2 in
+    assert(updated_two_elt_dic = Three(Leaf,(k1,v1), Leaf, (k2,v2_2), Leaf));
+    (* Insert element k3, where k3<k1<k2 into Three with k1 and k2
+    * should be Two with k1 as node, k3 left, k2 right *)
+    let k3 = D.gen_key_lt k1 () in
+    let v3 = D.gen_value() in
+    let three_elt_dic_1 = insert two_elt_dic k3 v3 in
+    assert(three_elt_dic_1 = Two(Two(Leaf,(k3,v3),Leaf),(k1,v1),
+                                Two(Leaf,(k2,v2),Leaf)));
+    (* Insert element k4, initialized earlier, where k1<k4<k2 into
+    * Three with k1 and k2. Should be Two with k4 as node, k1 left, k2 right *)
+    let v4 = D.gen_value() in
+    let three_elt_dic_2 = insert two_elt_dic k4 v4 in
+    assert(three_elt_dic_2 = Two(Two(Leaf,(k1,v1),Leaf),(k4,v4),
+                                Two(Leaf,(k2,v2),Leaf)));
+    (* Insert element k5, where k1<k2<k5 into Three with k1 and k2
+    * Should return Two with k2 as node, k1 left, k5 right *)
+    let k5 = D.gen_key_gt k2 () in
+    let v5 = D.gen_value () in
+    let three_elt_dic_3 = insert two_elt_dic k5 v5 in
+    assert(three_elt_dic_3 = Two(Two(Leaf,(k1,v1),Leaf),(k2,v2),
+                                Two(Leaf,(k5,v5),Leaf)));
+    (* Insert another element k6, k6>k5
+    * Should return Two with k2 as node, k1 left Two, k5 k6 right Three *)
+    let k6 = D.gen_key_gt k5 () in
+    let v6 = D.gen_value () in
+    let four_elt_dic = insert three_elt_dic_3 k6 v6 in
+    let () = Printf.printf "%s\n" (string_of_tree three_elt_dic_3) in
+    let () = Printf.printf "to insert: %s\n" (string_of_key k6) in
+    let () = Printf.printf "%s\n" (string_of_tree four_elt_dic) in
+    assert(four_elt_dic = Two(Two(Leaf,(k1,v1),Leaf),(k2,v2),
+                              Three(Leaf,(k5,v5),Leaf,(k6,v6),Leaf)));
+    ()
+
+  (* Test insertion into larger trees *)
+  let test_insert () =
+    (* Test the insertion will always be balanced *)
+    let pairs1 = generate_pair_list 5 in
+    let d1 = insert_list empty pairs1 in
+    assert(balanced d1);
+    let pairs2 = generate_pair_list 6 in
+    let d2 = insert_list empty pairs2 in
+    assert(balanced d2);
+    let pairs3 = generate_random_list 197 in
+    let d3 = insert_list empty pairs3 in
+    assert(balanced d3);
+    (* Test that the insertion is in the right order *)
+    let pairs4 = generate_pair_list 7 in
+    (* let p1 = (D.gen_key(), D.gen_value()) in
+    let p2 = (D.gen_key_gt (fst p1), D.gen_value()) in
+    let p3 = (D.gen_key_gt (fst p2), D.gen_value()) in
+    let p4 = (D.gen_key_gt (fst p3), D.gen_value()) in
+    let p5 = (D.gen_key_gt (fst p4), D.gen_value()) in
+    let p6 = (D.gen_key_gt (fst p5), D.gen_value()) in
+    let p7 = (D.gen_key_gt (fst p7), D.gen_value()) in *)
+    let d4 = insert_list empty pairs4 in
+    let sti = string_of_dict d4 in
+    let () = Printf.printf "%s\n" sti in
+    (* assert(d4 = ) *)
+    ()
+
+
 
 (*
   let test_remove_nothing () =
@@ -1228,6 +1330,8 @@ struct
    test_insert_updward_three_wxy () ;
    test_insert_updward_three_xwy () ;
    test_insert_updward_three_xyw () ;
+   test_insert_basics () ;
+   test_insert () ;
 (*    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
