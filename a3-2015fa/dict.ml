@@ -487,23 +487,55 @@ struct
    * with the appropriate arguments. *)
   let rec insert_downward (d: dict) (k: key) (v: value) : kicked =
     match d with
-      | Leaf -> raise TODO (* base case! see handout *)
-      | Two(left,n,right) -> raise TODO (* mutual recursion *)
-      | Three(left,n1,middle,n2,right) -> raise TODO (* mutual recursion *)
+      | Leaf -> Up((Leaf,(k,v),Leaf))
+      | Two(left,n,right) ->
+        insert_downward_two (k,v) n left right
+      | Three(left,n1,middle,n2,right) ->
+        insert_downward_three (k,v) n1 n2 left middle right
+      | _ -> failwith "oh no in insert_downward"
 
   (* Downward phase on a Two node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) is the (key,value) of the current Two node, and left and right
    * are the two subtrees of the current Two node. *)
   and insert_downward_two ((k,v): pair) ((k1,v1): pair)
       (left: dict) (right: dict) : kicked =
-    raise TODO
+      match D.compare k k1 with
+      |Eq -> Done(Two(left, (k, v), right))
+      |Less ->
+        let x = insert_downward left k v in
+        (match x with
+        | Up(Leaf,n,Leaf) -> insert_upward_two n Leaf Leaf (k1,v1) right
+        | Done(dic)     ->  x (* Done(Two(Two(l,(k,v),right),n,r)) *) )
+      |Greater ->
+        let y = insert_downward right k v in
+        (match y with
+        | Up(Leaf,n,Leaf) -> insert_upward_two n Leaf Leaf (k1,v1) left
+        | Done(dic)     ->  y (* Done(Two(l,n,r)) *) )
+
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
    * left, middle, and right are the three subtrees of our current Three node *)
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair)
       (left: dict) (middle: dict) (right: dict) : kicked =
-    raise TODO
+    match (D.compare k k1), (D.compare k k2) with
+    | Less, _ ->
+      let a = insert_downward left k v in
+      (match a with
+      | Up(Leaf,n,Leaf) -> insert_upward_three n left Leaf (k1,v1) (k2,v2) middle right
+      | Done(dic)     -> a (* Done(Three(Two(left,(k,v),Leaf),(k1,v1),middle,(k2,v2),right)) *) )
+    |Greater, Less ->
+      let b = insert_downward middle k v in
+      (match b with
+      | Up(Leaf,n,Leaf)  -> insert_upward_three (k1,v1) left Leaf (k,v) (k2,v2) middle right
+      | Done(dic)      -> b (* Done(Three(left,(k1,v1),Two(middle,(k,v),Leaf),(k2,v2),right)) *) )
+    | _, Greater ->
+      let c = insert_downward right k v in
+      (match c with
+      | Up(Leaf,n,Leaf)  -> insert_upward_three (k1,v1) left middle (k2,v2) (k,v) right Leaf
+      | Done(dic)      -> c  (* Done(Three(left,(k1,v1),middle,(k2,v2),Two(Leaf,(k,v),right))) *) )
+    |_,_ -> failwith "oh no"
+
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
    * "kicked" up configuration. We return the tree contained in the "kicked"
