@@ -492,7 +492,6 @@ struct
         insert_downward_two (k,v) n left right
       | Three(left,n1,middle,n2,right) ->
         insert_downward_three (k,v) n1 n2 left middle right
-      | _ -> failwith "oh no in insert_downward"
 
   (* Downward phase on a Two node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) is the (key,value) of the current Two node, and left and right
@@ -504,12 +503,12 @@ struct
       |Less ->
         let x = insert_downward left k v in
         (match x with
-        | Up(Leaf,n,Leaf) -> insert_upward_two n Leaf Leaf (k1,v1) right
+        | Up(l,n,r) -> insert_upward_two n l r (k1,v1) right
         | Done(dic)     ->  x (* Done(Two(Two(l,(k,v),right),n,r)) *) )
       |Greater ->
         let y = insert_downward right k v in
         (match y with
-        | Up(Leaf,n,Leaf) -> insert_upward_two n Leaf Leaf (k1,v1) left
+        | Up(l,n,r) -> insert_upward_two n l r (k1,v1) left
         | Done(dic)     ->  y (* Done(Two(l,n,r)) *) )
 
 
@@ -522,17 +521,17 @@ struct
     | Less, _ ->
       let a = insert_downward left k v in
       (match a with
-      | Up(Leaf,n,Leaf) -> insert_upward_three n left Leaf (k1,v1) (k2,v2) middle right
+      | Up(l,n,r) -> insert_upward_three n l r (k1,v1) (k2,v2) middle right
       | Done(dic)     -> a (* Done(Three(Two(left,(k,v),Leaf),(k1,v1),middle,(k2,v2),right)) *) )
     |Greater, Less ->
       let b = insert_downward middle k v in
       (match b with
-      | Up(Leaf,n,Leaf)  -> insert_upward_three (k1,v1) left Leaf (k,v) (k2,v2) middle right
+      | Up(l,n,r)  -> insert_upward_three (k1,v1) l r (k,v) (k2,v2) middle right
       | Done(dic)      -> b (* Done(Three(left,(k1,v1),Two(middle,(k,v),Leaf),(k2,v2),right)) *) )
     | _, Greater ->
       let c = insert_downward right k v in
       (match c with
-      | Up(Leaf,n,Leaf)  -> insert_upward_three (k1,v1) left middle (k2,v2) (k,v) right Leaf
+      | Up(l,n,m)  -> insert_upward_three (k1,v1) l m (k2,v2) (k,v) right Leaf
       | Done(dic)      -> c  (* Done(Three(left,(k1,v1),middle,(k2,v2),Two(Leaf,(k,v),right))) *) )
     |_,_ -> failwith "oh no"
 
