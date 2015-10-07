@@ -446,32 +446,30 @@ struct
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
       (* w<X<Y, first case *)
       if D.compare (fst w) (fst x) = Less then
-        let new_node = Two(Two(w_left,w, w_right), x,
-                          Two(other_left, y, other_right)) in
-        Done new_node
+        Up(Two(w_left,w, w_right), x,
+                          Two(other_left, y, other_right))
       (* X<w<Y, second case *)
       else if D.compare (fst w) (fst y)=Less then
-        let new_node = Two(Two(other_left, x, w_left), w,
-                          Two(w_right, y, other_right)) in
-        Done new_node
+        Up(Two(other_left, x, w_left), w,
+                          Two(w_right, y, other_right))
       (* X<Y<w, third case *)
       else
-        let new_node = Two(Two(other_left, x, other_right), y,
-                          Two(w_left, w, w_right)) in
-        Done new_node
-        (*        match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
-       | Less, _ ->
-        let new_node = Two(Two(w_left,w, w_right), x,
+        Up(Two(other_left, x, other_right), y,
+                          Two(w_left, w, w_right))
+(*         match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
+        | Eq,_ -> Three(w, y )
+        | Less, _ ->
+          let new_node = Two(Two(w_left,w, w_right), x,
                           Two(other_left, y, other_right)) in
-        Done new_node
-       | Greater, Less ->
-        let new_node = Two(Two(other_left, x, w_left), w,
+         Done new_node
+        | Greater, Less ->
+          let new_node = Two(Two(other_left, x, w_left), w,
                         Two(w_right, y, other_right)) in
-        Done new_node
-       | _, Greater ->
-        let new_node = Two(Two(other_left, x, other_right), y,
+         Done new_node
+        | _, Greater ->
+          let new_node = Two(Two(other_left, x, other_right), y,
                           Two(w_left, w, w_right)) in
-        Done new_node *)
+          Done new_node *)
 
 
   (* Downward phase for inserting (k,v) into our dictionary d.
@@ -522,16 +520,18 @@ struct
       match D.compare k k1 with
       |Eq -> Done(Two(left, (k, v), right))
       |Less ->
-        let x = insert_downward left k v in
-        (match x with
+        (match insert_downward left k v with
         | Up(l,n,r) -> insert_upward_two n l r (k1,v1) right
-        | Done(dic) ->  Done(dic))
+        | Done(dic) ->  Done(Two(dic,(k1,v1),right)))
       |Greater ->
-        let y = insert_downward right k v in
-        (match y with
-        | Up(l,n,r) -> insert_upward_two n l r (k1,v1) left
-        | Done(dic) ->  Done(dic))
-
+        (match insert_downward right k v with
+        | Up(l,n,r) ->
+          (* let () = Printf.printf "Right most in insert downward two \n" in *)
+          (* let () = Printf.printf "n: %s, l: %s, r: %s, k1: %s, left: %s \n" (string_of_key (fst n)) (string_of_tree l) (string_of_tree r) (string_of_key k1) (string_of_tree left) in *)
+          insert_upward_two n l r (k1,v1) left
+        | Done(dic) ->
+          (* let () = Printf.printf "Right most in done of downward two: %s \n" (string_of_tree dic) in *)
+        Done(Two(left, (k1,v1), dic)))
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
@@ -542,26 +542,31 @@ struct
     | Eq, _ -> Done(Three(left, (k,v), middle, (k2,v2), right))
     | _, Eq -> Done(Three(left, (k1,v1), middle, (k,v), right))
     | Less, _ ->
-      let a = insert_downward left k v in
-      (match a with
-      | Up(l,n,r) -> insert_upward_three n l r (k1,v1) (k2,v2) middle right
-      | Done(dic) -> Done(dic) (* a *) (* Done(Three(Two(left,(k,v),Leaf),(k1,v1),middle,(k2,v2),right)) *) )
-    |Greater, Less ->
-      let b = insert_downward middle k v in
-      (match b with
-      | Up(l,n,r)  -> insert_upward_three (k1,v1) l r (k,v) (k2,v2) middle right
-      | Done(dic)      -> Done(dic) (* b *) (* Done(Three(left,(k1,v1),Two(middle,(k,v),Leaf),(k2,v2),right)) *) )
+      (match insert_downward left k v with
+      | Up(l,n,r) ->
+        (* let () = Printf.printf "WE ARE IN LEFTMOST IN  THREE\n\n\n" in *)
+        insert_upward_three n l r (k1,v1) (k2,v2) middle right
+      | Done(dic) -> Done(Three(dic,(k1,v1),middle,(k2,v2),right)) )
+    | Greater, Less ->
+      (match insert_downward middle k v with
+      | Up(l,n,r)  ->
+        (* let () = Printf.printf "WE ARE IN MIDDLE IN  THREE\n\n\n" in *)
+        insert_upward_three n l r (k1,v1) (k2,v2) left right
+      | Done(dic)  -> Done(Three(left,(k1,v1),dic,(k2,v2),right)) )
     | _, Greater ->
-      let c = insert_downward right k v in
-      (match c with
-      | Up(l,n,m)  -> insert_upward_three (k1,v1) l m (k2,v2) (k,v) right Leaf
-      | Done(dic)      -> Done(dic) (* c *)  (* Done(Three(left,(k1,v1),middle,(k2,v2),Two(Leaf,(k,v),right))) *) )
+      (match insert_downward right k v with
+      | Up(l,n,m)  ->
+      insert_upward_three n l m (k1,v1) (k2,v2) left middle
+      | Done(dic)  ->
+      (* let () = Printf.printf "Rightmost downward three done: %s\n" (string_of_tree dic) in *)
+      Done(Three(left,(k1,v1),middle,(k2,v2),dic)) )
 
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
    * "kicked" up configuration. We return the tree contained in the "kicked"
    * configuration. *)
   let insert (d: dict) (k: key) (v: value) : dict =
+    (* let () = Printf.printf "Starting insert %s\n" (string_of_key k) in *)
     match insert_downward d k v with
       | Up(l,(k1,v1),r) -> Two(l,(k1,v1),r)
       | Done x -> x
@@ -1054,7 +1059,7 @@ struct
 
   let match_insert_upward_three_helper new_node root_key left_key right_key leaf1 leaf2 leaf3 leaf4 () =
     match new_node with
-    | Done(Two(left, (node_key, node_val), right)) ->
+    | Up(left, (node_key, node_val), right) ->
       assert(D.compare node_key root_key = Eq);
       let test_left =
         (match left with
@@ -1105,7 +1110,7 @@ struct
     | _ -> failwith "We shouldn't be here"
 
   (* Check the kick up for first case, w<X<Y *)
-  let test_insert_updward_three_wxy () =
+  let test_insert_upward_three_wxy () =
     let w_key = D.gen_key() in
     let w = (w_key, D.gen_value()) in
     let x_key = D.gen_key_gt w_key () in
@@ -1131,7 +1136,7 @@ struct
 
 
 (* Check the kick up for second case, x<w<Y *)
-  let test_insert_updward_three_xwy () =
+  let test_insert_upward_three_xwy () =
     let x_key = D.gen_key() in
     let x = (x_key, D.gen_value()) in
     let w_key = D.gen_key_gt x_key () in
@@ -1157,7 +1162,7 @@ struct
 
 
 (* Check the kick up for third case, x<y<w *)
-  let test_insert_updward_three_xyw () =
+  let test_insert_upward_three_xyw () =
     let x_key = D.gen_key() in
     let x = (x_key, D.gen_value()) in
     let y_key = D.gen_key_gt x_key () in
@@ -1226,11 +1231,14 @@ struct
     let k6 = D.gen_key_gt k5 () in
     let v6 = D.gen_value () in
     let four_elt_dic = insert three_elt_dic_3 k6 v6 in
-    let () = Printf.printf "%s\n" (string_of_tree three_elt_dic_3) in
-    let () = Printf.printf "to insert: %s\n" (string_of_key k6) in
-    let () = Printf.printf "%s\n" (string_of_tree four_elt_dic) in
     assert(four_elt_dic = Two(Two(Leaf,(k1,v1),Leaf),(k2,v2),
                               Three(Leaf,(k5,v5),Leaf,(k6,v6),Leaf)));
+    let k7 = D.gen_key_gt k6 () in
+    let v7 = D.gen_value () in
+    let five_elt_dic = insert four_elt_dic k7 v7 in
+    assert(five_elt_dic = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),
+                                Two(Leaf,(k5,v5),Leaf),(k6,v6),
+                                Two(Leaf,(k7,v7),Leaf)));
     ()
 
   (* Test insertion into larger trees *)
@@ -1242,22 +1250,12 @@ struct
     let pairs2 = generate_pair_list 6 in
     let d2 = insert_list empty pairs2 in
     assert(balanced d2);
+    let pairs3 = generate_pair_list 7 in
+    let d3 = insert_list empty pairs3 in
+    assert(balanced d3);
     let pairs3 = generate_random_list 197 in
     let d3 = insert_list empty pairs3 in
     assert(balanced d3);
-    (* Test that the insertion is in the right order *)
-    let pairs4 = generate_pair_list 7 in
-    (* let p1 = (D.gen_key(), D.gen_value()) in
-    let p2 = (D.gen_key_gt (fst p1), D.gen_value()) in
-    let p3 = (D.gen_key_gt (fst p2), D.gen_value()) in
-    let p4 = (D.gen_key_gt (fst p3), D.gen_value()) in
-    let p5 = (D.gen_key_gt (fst p4), D.gen_value()) in
-    let p6 = (D.gen_key_gt (fst p5), D.gen_value()) in
-    let p7 = (D.gen_key_gt (fst p7), D.gen_value()) in *)
-    let d4 = insert_list empty pairs4 in
-    let sti = string_of_dict d4 in
-    let () = Printf.printf "%s\n" sti in
-    (* assert(d4 = ) *)
     ()
 
 
@@ -1327,9 +1325,9 @@ struct
    test_member () ;
    test_insert_upward_two_wx () ;
    test_insert_upward_two_xw () ;
-   test_insert_updward_three_wxy () ;
-   test_insert_updward_three_xwy () ;
-   test_insert_updward_three_xyw () ;
+   test_insert_upward_three_wxy () ;
+   test_insert_upward_three_xwy () ;
+   test_insert_upward_three_xyw () ;
    test_insert_basics () ;
    test_insert () ;
 (*    test_remove_nothing() ;
