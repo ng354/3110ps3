@@ -445,7 +445,7 @@ struct
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
       (* w<X<Y, first case *)
-      if D.compare (fst w) (fst x) = Less then
+(*       if D.compare (fst w) (fst x) = Less then
         Up(Two(w_left,w, w_right), x,
                           Two(other_left, y, other_right))
       (* X<w<Y, second case *)
@@ -455,21 +455,19 @@ struct
       (* X<Y<w, third case *)
       else
         Up(Two(other_left, x, other_right), y,
-                          Two(w_left, w, w_right))
-(*         match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
-        | Eq,_ -> Three(w, y )
+                          Two(w_left, w, w_right)) *)
+        match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
+        | Eq,_ -> Done(Three(w_left, w, w_right, y, other_right))
+        | _,Eq -> Done(Three(other_left, x, w_left, w, w_right))
         | Less, _ ->
-          let new_node = Two(Two(w_left,w, w_right), x,
-                          Two(other_left, y, other_right)) in
-         Done new_node
+          Up(Two(w_left,w, w_right), x,
+                          Two(other_left, y, other_right))
         | Greater, Less ->
-          let new_node = Two(Two(other_left, x, w_left), w,
-                        Two(w_right, y, other_right)) in
-         Done new_node
+          Up(Two(other_left, x, w_left), w,
+                          Two(w_right, y, other_right))
         | _, Greater ->
-          let new_node = Two(Two(other_left, x, other_right), y,
-                          Two(w_left, w, w_right)) in
-          Done new_node *)
+          Up(Two(other_left, x, other_right), y,
+                          Two(w_left, w, w_right))
 
 
   (* Downward phase for inserting (k,v) into our dictionary d.
@@ -581,9 +579,9 @@ struct
       (left: dict) (right: dict) (dir: direction2) : hole =
     match dir,n,left,right with
       | Left2,x,l,Two(m,y,r) -> Hole(rem,Three(l,x,m,y,r))
-      | Right2,y,Two(l,x,m),r -> raise TODO
-      | Left2,x,a,Three(b,y,c,z,d) -> raise TODO
-      | Right2,z,Three(a,x,b,y,c),d -> raise TODO
+      | Right2,y,Two(l,x,m),r -> Hole(rem,Three(l,x,m,y,r))
+      | Left2,x,a,Three(b,y,c,z,d) -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
+      | Right2,z,Three(a,x,b,y,c),d -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
       | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
 
   (* Upward phase for removal where the parent of the hole is a Three node.
@@ -595,13 +593,13 @@ struct
       (left: dict) (middle: dict) (right: dict) (dir: direction3) : hole =
     match dir,n1,n2,left,middle,right with
       | Left3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
-      | Mid3,y,z,Two(a,x,b),c,d -> raise TODO
-      | Mid3,x,y,a,b,Two(c,z,d) -> raise TODO
-      | Right3,x,z,a,Two(b,y,c),d -> raise TODO
-      | Left3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
-      | Mid3,y,z,Three(a,w,b,x,c),d,e -> raise TODO
-      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> raise TODO
-      | Right3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
+      | Mid3,y,z,Two(a,x,b),c,d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
+      | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Right3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Left3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
+      | Mid3,y,z,Three(a,w,b,x,c),d,e -> Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
+      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
+      | Right3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
@@ -761,7 +759,14 @@ struct
    * as an option this (key,value) pair along with the new dictionary.
    * If our dictionary is empty, this should return None. *)
   let choose (d: dict) : (key * value * dict) option =
-    raise TODO
+    match d with
+    | Leaf -> None
+    | Two(l,(k,v),r) ->
+      let new_d = remove d k in
+      Some (k,v,new_d)
+    | Three(l,(k,v),m,n2,r) ->
+      let new_d = remove d k in
+      Some (k,v,new_d)
 
 
   (* [tree_path_length d] returns an int of the length (which we consider
@@ -1233,12 +1238,28 @@ struct
     let four_elt_dic = insert three_elt_dic_3 k6 v6 in
     assert(four_elt_dic = Two(Two(Leaf,(k1,v1),Leaf),(k2,v2),
                               Three(Leaf,(k5,v5),Leaf,(k6,v6),Leaf)));
+
+    (* Tests insertion of duplicate into three node *)
+    let v6_copy = D.gen_value () in
+    let four_elt_dic_copy = insert four_elt_dic k6 v6_copy in
+    assert(four_elt_dic_copy = Two(Two(Leaf,(k1,v1),Leaf),(k2,v2),
+                          Three(Leaf,(k5,v5),Leaf,(k6,v6_copy),Leaf)));
+
+    (* Tests inserting another element, k7, k7>k6
+    * Should return Two with 2 Twos which also point to 2 Twos each *)
     let k7 = D.gen_key_gt k6 () in
     let v7 = D.gen_value () in
     let five_elt_dic = insert four_elt_dic k7 v7 in
     assert(five_elt_dic = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),
                                 Two(Leaf,(k5,v5),Leaf),(k6,v6),
                                 Two(Leaf,(k7,v7),Leaf)));
+
+    (* Test insertion of duplicate key k6 to five_elt_dic to update value
+    * ensures that we can update value in middle of tree *)
+    let five_elt_dic_copy = insert five_elt_dic k6 v6_copy in
+    assert(five_elt_dic_copy = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),
+                              Two(Leaf,(k5,v5),Leaf),(k6,v6_copy),
+                              Two(Leaf,(k7,v7),Leaf)));
     ()
 
   (* Test insertion into larger trees *)
@@ -1260,7 +1281,7 @@ struct
 
 
 
-(*
+
   let test_remove_nothing () =
     let pairs1 = generate_pair_list 26 in
     let d1 = insert_list empty pairs1 in
@@ -1313,7 +1334,53 @@ struct
     List.iter (fun (k,_) -> assert(not (member r5 k))) pairs5 ;
     assert(r5 = empty) ;
     assert(balanced r5) ;
-    () *)
+    ()
+
+  let test_choose () =
+    (* Test on choose from empty *)
+    let d1 = empty in
+    let choose1 = choose d1 in
+    assert(choose1=None);
+
+    (* Test on choose from one elt -- Two to 2 Leafs *)
+    let k2 = D.gen_key () in
+    let v2 = D.gen_value () in
+    let d2 = insert empty k2 v2 in
+    let choose2 = choose d2 in
+    assert(choose2 = Some(k2,v2,empty));
+
+    (* Test on choose from two elt -- Three to 3 Leafs *)
+    let k3 = D.gen_key () in
+    let v3 = D.gen_value () in
+    let old_d3 = insert empty (D.gen_key_gt k3 ()) (D.gen_value ()) in
+    let d3 = insert old_d3 k3 v3 in
+    let choose3 = choose d3 in
+    assert(choose3 = Some(k3,v3,old_d3));
+
+    (* Test on choose from three elt -- Two to 2 Twos to Leaves
+    * Should return a Three node *)
+    let k4 = D.gen_key () in
+    let v4 = D.gen_value () in
+    let k4_below = D.gen_key_lt k4 () in
+    let v4_below = D.gen_value () in
+    let k4_above = D.gen_key_gt k4 () in
+    let v4_above = D.gen_value () in
+    let old_d4 = insert (insert empty k4_below v4_below) k4_above v4_above in
+    let d4 = insert old_d4 k4 v4 in
+    let choose4 = choose d4 in
+    assert(choose4 = Some(k4,v4,old_d4));
+
+    (* Test on choose from four elt -- Three to 3 Twos to Leaves
+    * Should return a Two to a Two and a Three to Leaves *)
+    let k1 = D.gen_key_lt k2 () in
+    let v1 = D.gen_value () in
+    let k5 = D.gen_key () in
+    let v5 = D.gen_value () in
+    let old_d5 = Two(Three(Leaf, (k1,v1), Leaf,(k3,v3),Leaf),(k4,v4),Two(Leaf,(k5,v5),Leaf)) in
+    let new_d5 = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),Two(Leaf,(k3,v3),Leaf),(k4,v4),Two(Leaf,(k5,v5),Leaf)) in
+    let choose5 = choose new_d5 in
+    assert(choose5 = Some(k2,v2,old_d5));
+    ()
 
   let run_tests () =
    test_balance() ;
@@ -1330,12 +1397,13 @@ struct
    test_insert_upward_three_xyw () ;
    test_insert_basics () ;
    test_insert () ;
-(*    test_remove_nothing() ;
-    test_remove_from_nothing() ;
-    test_remove_in_order() ;
-    test_remove_reverse_order() ;
-    test_remove_random_order() ; *)
-    ()
+   test_remove_nothing() ;
+   test_remove_from_nothing() ;
+   test_remove_in_order() ;
+   test_remove_reverse_order() ;
+   test_remove_random_order() ;
+   test_choose () ;
+   ()
 
 end
 
