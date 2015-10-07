@@ -444,18 +444,6 @@ struct
    * new tree as a result of performing the upward phase on w. *)
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
-      (* w<X<Y, first case *)
-(*       if D.compare (fst w) (fst x) = Less then
-        Up(Two(w_left,w, w_right), x,
-                          Two(other_left, y, other_right))
-      (* X<w<Y, second case *)
-      else if D.compare (fst w) (fst y)=Less then
-        Up(Two(other_left, x, w_left), w,
-                          Two(w_right, y, other_right))
-      (* X<Y<w, third case *)
-      else
-        Up(Two(other_left, x, other_right), y,
-                          Two(w_left, w, w_right)) *)
         match (D.compare (fst w) (fst x)), (D.compare (fst w) (fst y)) with
         | Eq,_ -> Done(Three(w_left, w, w_right, y, other_right))
         | _,Eq -> Done(Three(other_left, x, w_left, w, w_right))
@@ -1279,9 +1267,6 @@ struct
     assert(balanced d3);
     ()
 
-
-
-
   let test_remove_nothing () =
     let pairs1 = generate_pair_list 26 in
     let d1 = insert_list empty pairs1 in
@@ -1438,6 +1423,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) =
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  AssocListDict(D)
-  (* BTDict(D) *)
+  (* AssocListDict(D) *)
+  BTDict(D)
 

@@ -117,25 +117,30 @@ let remove_link_from_front (lnk : link) (frnt : LinkSet.set)
 *)
 let rec crawl (n:int) (frontier: LinkSet.set)
     (visited : LinkSet.set) (d:WordDict.dict) : WordDict.dict =
+        let size = WordDict.fold (fun k v sum -> 1+sum) 0 d in
+        let () = Printf.printf "size: %d \n %!" size in
+
   (* when n reaches 0 and when frontier is empty just return d the dictionary   *)
-  if n=0 || is_empty(frontier) then
-    d
+  if n=0 || is_empty(frontier) then d
   else
     let (chosen, new_front) = get_opt(choose frontier) in
     (*the page for that link*)
-    let chosens_page = get_opt(get_page chosen) in
-
-    if member visited chosen then
+    match get_page chosen with
+    | Some page ->
+        let () = Printf.printf "Found a page \n%!" in
+        let chosens_page = page in
+        if member visited chosen then
+          crawl n new_front visited d
+        else
+        (*list of string of all words on that page*)
+        let page_word_list = remove_duplicates chosens_page.words in
+        (*updated dictionary with keys and link set values*)
+        let updated_dict  = init_dic d page_word_list chosen in
+        let updated_front = remove_link_from_front chosen frontier visited in
+        let updated_visit = insert chosen visited in
+        crawl (n-1) updated_front updated_visit updated_dict
+    | None ->
       crawl n new_front visited d
-    else
-    (* TODO?  handle the case where chosens_page doesn't exist *)
-      (*list of string of all words on that page*)
-      let page_word_list = remove_duplicates chosens_page.words in
-      (*updated dictionary with keys and link set values*)
-      let updated_dict  = init_dic d page_word_list chosen in
-      let updated_front = remove_link_from_front chosen frontier visited in
-      let updated_visit = insert chosen visited in
-      crawl (n-1) updated_front updated_visit updated_dict
 
 let crawler () =
   crawl num_pages_to_search (LinkSet.singleton initial_link) LinkSet.empty
