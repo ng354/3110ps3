@@ -1,8 +1,8 @@
-open Util 
-open CrawlerServices 
-open Order 
-open Nodescore 
-open Graph 
+open Util
+open CrawlerServices
+open Order
+open Nodescore
+open Graph
 
 
 (*Maps links to their ranks. Higher is better. *)
