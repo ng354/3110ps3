@@ -212,23 +212,68 @@ struct
     ()
 
   let test_member () =
-   (*  let elts = generate_random_list 10 in
-    let elts2 = generate_random_list 10 in
+    let elts = generate_random_list 10 in
     let s1 = insert_list empty elts in
-    let s2  = insert_list empty elts2 in
-    let s = member s1 s2 in *)
+    let elt = List.nth elts 4 in
+    assert(member s1 elt);
     ()
+
+  (* gets the value out of an option *)
+  let test_get_opt opt =
+    match opt with
+    | None -> raise (Invalid_argument "Option.get")
+    | Some (k,s) -> (k,s)
 
   let test_choose () =
+    (* test on set with size 1 *)
+    let elt = C.gen_random () in
+    let s1 = insert elt empty in
+    let chosen = choose s1 in
+    let (chosen_elt, new_s1) = test_get_opt chosen in
+    assert(is_empty(new_s1));
+    (* test set with size 10 *)
+    let elts = generate_random_list 10 in
+    let s2 = insert_list empty elts in
+    let chosen = choose s2 in
+    let (chosen_elt, new_s2) = test_get_opt chosen in
+    assert(not (member new_s2 chosen_elt));
+    assert(not (is_empty new_s2));
     ()
+    (* test on zero element set *)
+    let s3 = empty in
+    let chosen_opt = choose s3 in
+    try
+      let (chosen_elt, new_s3) = test_get_opt chosen_opt in
+      assert(is_empty new_s3);
+    with
+    | Invalid_argument("Option.get") -> ()
 
   let test_fold () =
+    (* Test fold one 2 element set, incrementing by 1 both times *)
+    let elt1 = C.gen_random () in
+    let elt2 = C.gen_random () in
+    let s = insert elt2 (singleton elt1) in
+    let new_s = fold (fun elmt d -> d+1) 0 s in
+    assert(new_s=2);
+    (* Test fold on empty set w/ fxn to duplicate set *)
+    let s2 = empty in
+    let new_s2 = fold (fun elt d -> insert elt d) empty s2 in
+    assert(is_empty new_s2);
     ()
+
 
   let test_is_empty () =
+    let set_empty = empty in
+    assert(is_empty set_empty);
     ()
 
+
   let test_singleton () =
+    let elt = C.gen_random () in
+    let s = singleton elt in
+    assert(member s elt) ;
+    let empty_s = remove elt s in
+    assert(is_empty empty_s);
     ()
 
   let run_tests () =
@@ -560,13 +605,6 @@ struct
     let new_s = fold (fun elt d -> insert elt d) empty s in
     assert(is_empty new_s);
     ()
-
-  (* Test string_of_set on regular set *)
-(*   let test_string_of_set () =
-    let s = insert (C.gen_random ()) (singleton (C.gen_random ())) in
-    let str = string_of_set s in
-    assert(str = "")
-    () *)
 
   (* add your test functions to run_tests *)
   (* Order of tests ensure that later tests which use earlier fxns work *)
