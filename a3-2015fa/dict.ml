@@ -512,11 +512,8 @@ struct
       |Greater ->
         (match insert_downward right k v with
         | Up(l,n,r) ->
-          (* let () = Printf.printf "Right most in insert downward two \n" in *)
-          (* let () = Printf.printf "n: %s, l: %s, r: %s, k1: %s, left: %s \n" (string_of_key (fst n)) (string_of_tree l) (string_of_tree r) (string_of_key k1) (string_of_tree left) in *)
           insert_upward_two n l r (k1,v1) left
         | Done(dic) ->
-          (* let () = Printf.printf "Right most in done of downward two: %s \n" (string_of_tree dic) in *)
         Done(Two(left, (k1,v1), dic)))
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
@@ -530,13 +527,11 @@ struct
     | Less, _ ->
       (match insert_downward left k v with
       | Up(l,n,r) ->
-        (* let () = Printf.printf "WE ARE IN LEFTMOST IN  THREE\n\n\n" in *)
         insert_upward_three n l r (k1,v1) (k2,v2) middle right
       | Done(dic) -> Done(Three(dic,(k1,v1),middle,(k2,v2),right)) )
     | Greater, Less ->
       (match insert_downward middle k v with
       | Up(l,n,r)  ->
-        (* let () = Printf.printf "WE ARE IN MIDDLE IN  THREE\n\n\n" in *)
         insert_upward_three n l r (k1,v1) (k2,v2) left right
       | Done(dic)  -> Done(Three(left,(k1,v1),dic,(k2,v2),right)) )
     | _, Greater ->
@@ -544,7 +539,6 @@ struct
       | Up(l,n,m)  ->
       insert_upward_three n l m (k1,v1) (k2,v2) left middle
       | Done(dic)  ->
-      (* let () = Printf.printf "Rightmost downward three done: %s\n" (string_of_tree dic) in *)
       Done(Three(left,(k1,v1),middle,(k2,v2),dic)) )
 
 
@@ -552,11 +546,9 @@ struct
    * "kicked" up configuration. We return the tree contained in the "kicked"
    * configuration. *)
   let insert (d: dict) (k: key) (v: value) : dict =
-    (* let () = Printf.printf "Starting insert %s\n" (string_of_key k) in *)
     match insert_downward d k v with
       | Up(l,(k1,v1),r) -> Two(l,(k1,v1),r)
       | Done x -> x
-
 
   (* Upward phase for removal where the parent of the hole is a Two node.
    * See cases (1-2) on the handout. n is the (key,value) pair contained in
@@ -568,8 +560,8 @@ struct
     match dir,n,left,right with
       | Left2,x,l,Two(m,y,r) -> Hole(rem,Three(l,x,m,y,r))
       | Right2,y,Two(l,x,m),r -> Hole(rem,Three(l,x,m,y,r))
-      | Left2,x,a,Three(b,y,c,z,d) -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
-      | Right2,z,Three(a,x,b,y,c),d -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
+      | Left2,x,a,Three(b,y,c,z,d) -> Absorbed(rem,Two(Two(a,x,b),y,Two(c,z,d)))
+      | Right2,z,Three(a,x,b,y,c),d -> Absorbed(rem,Two(Two(a,x,b),y,Two(c,z,d)))
       | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
 
   (* Upward phase for removal where the parent of the hole is a Three node.
@@ -584,10 +576,14 @@ struct
       | Mid3,y,z,Two(a,x,b),c,d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
       | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
       | Right3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
-      | Left3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
-      | Mid3,y,z,Three(a,w,b,x,c),d,e -> Absorbed(rem,Three(Two(a,w,b),x,Two(c,y,d),z,e))
-      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
-      | Right3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
+      | Left3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(Two(a,w,b),
+                                                      x,Two(c,y,d),z,e))
+      | Mid3,y,z,Three(a,w,b,x,c),d,e -> Absorbed(rem,Three(Two(a,w,b),
+                                                      x,Two(c,y,d),z,e))
+      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> Absorbed(rem,Three(a,w,Two(b,x,c),
+                                                      y,Two(d,z,e)))
+      | Right3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(a,w,Two(b,x,c),
+                                                      y,Two(d,z,e)))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
@@ -1050,7 +1046,10 @@ struct
       ()
     | _ -> failwith "We shouldn't be here"
 
-  let match_insert_upward_three_helper new_node root_key left_key right_key leaf1 leaf2 leaf3 leaf4 () =
+  (*helper function that matches nodes and leaves for inserting upward phase
+   *compares the nodes and inserts it respectively*)
+  let match_insert_upward_three_helper new_node root_key left_key
+        right_key leaf1 leaf2 leaf3 leaf4 () =
     match new_node with
     | Up(left, (node_key, node_val), right) ->
       assert(D.compare node_key root_key = Eq);
@@ -1361,8 +1360,10 @@ struct
     let v1 = D.gen_value () in
     let k5 = D.gen_key () in
     let v5 = D.gen_value () in
-    let old_d5 = Two(Three(Leaf, (k1,v1), Leaf,(k3,v3),Leaf),(k4,v4),Two(Leaf,(k5,v5),Leaf)) in
-    let new_d5 = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),Two(Leaf,(k3,v3),Leaf),(k4,v4),Two(Leaf,(k5,v5),Leaf)) in
+    let old_d5 = Two(Three(Leaf, (k1,v1), Leaf,(k3,v3),Leaf),
+                                 (k4,v4),Two(Leaf,(k5,v5),Leaf)) in
+    let new_d5 = Three(Two(Leaf,(k1,v1),Leaf),(k2,v2),Two(Leaf,(k3,v3),Leaf),
+                                (k4,v4),Two(Leaf,(k5,v5),Leaf)) in
     let choose5 = choose new_d5 in
     assert(choose5 = Some(k2,v2,old_d5));
     ()
@@ -1411,8 +1412,6 @@ let _ = IntStringListDict.run_tests()
 
 module IntStringBTDict = BTDict(IntStringDictArg)
 let _ = IntStringBTDict.run_tests()
-
-
 
 
 (******************************************************************)

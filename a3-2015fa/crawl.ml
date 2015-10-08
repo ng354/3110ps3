@@ -58,17 +58,15 @@ let print s =
 (*    PART 1: CRAWLER                                                  *)
 (***********************************************************************)
 
-
 (*if word does not exist, create a new linkset with the link, otherwise
  * add the link to the current linkset for the word key *)
-let modify_link_set (l : link) (d : WordDict.dict) (wrd : string) : WordDict.dict =
+let modify_link_set (l : link) (d : WordDict.dict) (wrd : string)
+                     : WordDict.dict =
   let new_set =
   match WordDict.lookup d wrd with
   |None -> LinkSet.singleton l
   |Some set -> (LinkSet.insert l set) in
-(*   let size = LinkSet.fold (fun k sum -> sum+1) 0 new_set in
- *)(*   let () = Printf.printf "number set %d\n %!" size in
- *)  WordDict.insert d wrd new_set
+    WordDict.insert d wrd new_set
 
 (*adding the keys and the modified linksets in the dictionary*)
 let rec init_dic dict ky_lst lnk : WordDict.dict =
@@ -76,28 +74,24 @@ match ky_lst  with
 |[] -> dict
 |h::t -> init_dic (modify_link_set lnk dict h) t lnk
 
-(* (*removes duplicate words from the page words list*)
-let rec remove_duplicates lst =
-match lst with
-|[] -> []
-|h::t -> h::(remove_duplicates (List.filter (fun x -> x <> h) t)) *)
-
+(*Returns option*)
 let get_opt opt =
   match opt with
   | None -> raise (Invalid_argument "Option.get")
   | Some x -> x
 
-(*adds link to the frontier if it doesnt exist already*)
+(*adds link to the frontier if it doesn't exist already*)
 let rec add_link_to_frontier (lst : link list) (frnt : LinkSet.set)
                               (visited : LinkSet.set) =
-match lst with
-| [] -> frnt
-| h::t ->
-  if member visited h then
-    add_link_to_frontier t frnt visited
-  else
-    add_link_to_frontier t (insert h frnt) visited
+  match lst with
+  | [] -> frnt
+  | h::t ->
+    if member visited h then
+      add_link_to_frontier t frnt visited
+    else
+      add_link_to_frontier t (insert h frnt) visited
 
+(*removes link from frontier after it is visited*)
 let remove_link_from_front (lnk : link) (frnt : LinkSet.set)
                           (visited : LinkSet.set) =
   (*link list of all links on that page*)
@@ -115,35 +109,24 @@ let remove_link_from_front (lnk : link) (frnt : LinkSet.set)
  * Keep crawling until we've
  * reached the maximum number of links (n) or the frontier is empty.
  * match on frontier and check if it exists in LinkSet. If it exists then you
- don't go to it and continue.
-*)
+ don't go to it and continue. *)
 let rec crawl (n:int) (frontier: LinkSet.set)
     (visited : LinkSet.set) (d:WordDict.dict) : WordDict.dict =
-(*         let size = WordDict.fold (fun k v sum -> 1+sum) 0 d in
- *)(*         let () = Printf.printf "size: %d \n %!" size in
- *)
-  (* when n reaches 0 and when frontier is empty just return d the dictionary   *)
   if n=0 || is_empty(frontier) then d
   else
     let (chosen, new_front) = get_opt(choose frontier) in
     (*the page for that link*)
     match get_page chosen with
     | Some page ->
-(*         let () = Printf.printf "Found a page \n%!" in
- *)        let chosens_page = page in
+         let chosens_page = page in
         if member visited chosen then
           crawl n new_front visited d
         else
-        (*list of string of all words on that page*)
-        (* let page_word_list = remove_duplicates chosens_page.words in *)
-        (*updated dictionary with keys and link set values*)
         let page_word_list = chosens_page.words in
         let updated_dict  = init_dic d page_word_list chosen in
         let updated_front = remove_link_from_front chosen frontier visited in
         let updated_visit = insert chosen visited in
-(*         let link_size = LinkSet.fold (fun k sum -> sum+1) 0 updated_visit in
-(*  *)        let () = Printf.printf "number visited %d\n %!" link_size in
- *)        crawl (n-1) updated_front updated_visit updated_dict
+          crawl (n-1) updated_front updated_visit updated_dict
     | None ->
       crawl n new_front visited d
 

@@ -190,29 +190,33 @@ struct
     List.iter (fun k -> assert(not (member s2 k))) elts ;
     ()
 
-  (* returns a new set of the union of sets *)
+  (* test cases for the union of sets *)
   let test_union_1 () =
-   (*  let elts = generate_random_list 50 in
+    let elts = generate_random_list 50 in
     let s1 = insert_list empty elts in
     let elts2 = generate_random_list 50 in
     let s2 = insert_list empty elts2 in
     let s = union s1 s2 in
-    assert(member s elts);
-    assert(member s elts2); *)
+    List.iter (fun k -> assert(member s k)) elts;
+    List.iter (fun k -> assert(member s k)) elts2;
     ()
 
-
   let test_intersect () =
-  (*   let elts = generate_random_list 10 in
+    let elts = generate_random_list 10 in
     let elts2 = generate_random_list 10 in
-    let elts3 = generate_random_list 10 in
     let s1 = insert_list empty elts in
     let s2  = insert_list empty elts2 in
-    let s = intersect s1 s2 in *)
-
+    let s = intersect s1 s2 in
+    List.iter (fun k -> assert(member s1 k)) s;
+    List.iter (fun k -> assert(member s2 k)) s;
     ()
 
   let test_member () =
+   (*  let elts = generate_random_list 10 in
+    let elts2 = generate_random_list 10 in
+    let s1 = insert_list empty elts in
+    let s2  = insert_list empty elts2 in
+    let s = member s1 s2 in *)
     ()
 
   let test_choose () =
