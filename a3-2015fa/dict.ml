@@ -423,12 +423,6 @@ struct
       | Greater ->
         let new_node = Three(x_other, x, w_left, w, w_right) in
         Done new_node
-(*      if D.compare (fst w) (fst x) = Less then
-      let new_node = Three(w_left, w, w_right, x, x_other) in
-      Done new_node
-    else
-      let new_node = Three(x_other, x, w_left, w, w_right) in
-      Done new_node *)
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children,
@@ -885,7 +879,6 @@ struct
     assert(fold4 = 26) ;
     ()
 
-  (* TODO, figure out a better way to test this *)
     let test_string_of_key () =
     let k = D.gen_key() in
     assert((string_of_key k)=D.string_of_key k) ;
@@ -953,13 +946,14 @@ struct
 
       let k_d2 = D.gen_key() in
       let v_d2 = D.gen_value() in
-      let d2 = Two(Leaf,(k_d2, v_d2),Leaf) in
+      let d2 = insert empty k_d2 v_d2 in
       let looked_up2 = lookup d2 k_d2 in
       assert(looked_up2 = Some v_d2);
 
-      let k1_d3 = D.gen_key() in
-      let v1_d3 = D.gen_value() in
-      let d3 = Three(Leaf,(k1_d3, v1_d3),Leaf,(D.gen_pair()),Leaf) in
+      let k1_d3 = D.gen_key () in
+      let v1_d3 = D.gen_value () in
+      let d3_old = insert empty k1_d3 v1_d3 in
+      let d3 = insert d3_old (D.gen_key_random ()) (D.gen_value ()) in
       let looked_up3 = lookup d3 k1_d3 in
       assert(looked_up3 = Some v1_d3);
       let looked_up3_none = lookup d3 (D.gen_key_random()) in
@@ -987,12 +981,13 @@ struct
 
     let k_d2 = D.gen_key() in
     let v_d2 = D.gen_value() in
-    let d2 = Two(Leaf,(k_d2, v_d2),Leaf) in
+    let d2 = insert empty k_d2 v_d2 in
     assert(member d2 k_d2 );
 
     let k1_d3 = D.gen_key() in
     let v1_d3 = D.gen_value() in
-    let d3 = Three(Leaf,(k1_d3, v1_d3),Leaf,(D.gen_pair()),Leaf) in
+    let d3 = insert (insert empty k1_d3 v1_d3) (D.gen_key_random ())
+                    (D.gen_value ()) in
     assert(member d3 k1_d3);
     assert(not(member d3 (D.gen_key_random())));
 
