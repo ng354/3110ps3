@@ -90,8 +90,6 @@ sig
   val gen_pair : unit -> key * value
 end
 
-
-
 (* An example implementation of our DICT_ARG signature. Use this struct
  * for testing. *)
 module IntStringDictArg : DICT_ARG =
@@ -133,8 +131,6 @@ struct
       (current_index := index + 1; lst_n possible_values index)
   let gen_pair () = (gen_key_random(), gen_value())
 end
-
-
 
 (* An association list implementation of our DICT signature. *)
 module AssocListDict(D:DICT_ARG) : (DICT with type key = D.key
@@ -246,15 +242,48 @@ struct
     ()
 
   let test_lookup () =
+    let pairs1 = generate_pair_list 26 in
+    let d1 = insert_list empty pairs1 in
+    List.iter (fun (k,v) -> assert(lookup d1 k = Some v)) pairs1;
+
+    let a =
+     match choose d1 with
+     |Some (k,v,rest) -> k
+     |None -> D.gen_key() in
+    let b = remove d1 a in
+    assert(lookup b a = None);
     ()
 
   let test_choose () =
+    let pairs1 = generate_pair_list 26 in
+    let d1 = insert_list empty pairs1 in
+    let d2 = empty in
+
+    match choose d2 with
+    |None -> assert(true);
+    |Some x -> let _ = assert(false) in
+
+    match choose d1 with
+    |None -> assert(false);
+    |Some (k,v,rest) -> assert(not (member d2 k));
     ()
 
   let test_member () =
+    let pairs1 = generate_pair_list 20 in
+    let d1 = insert_list empty pairs1 in
+    let a =
+     match choose d1 with
+     |Some (k,v,rest) -> k
+     |None -> D.gen_key() in
+    let b = remove d1 a in
+    assert(member b a = false);
     ()
 
   let test_fold () =
+    let pairs1 = generate_random_list 20 in
+    let d1 = insert_list empty pairs1 in
+    let count = fold (fun k v acc -> acc + 1) 0 d1 in
+    assert(count = List.length d1);
     ()
 
   let run_tests () =
@@ -965,14 +994,14 @@ struct
       let third_key = D.gen_key_gt second_key () in
       let fourth_key = D.gen_key_gt third_key () in
       let fourth_value = D.gen_value () in
-      let d4 = Three(Two(Leaf, (first_key,D.gen_value()),  Leaf),
-                (second_key,second_value), Leaf, (third_key,D.gen_value()),
-                Two(Leaf, (fourth_key,fourth_value), Leaf)) in
-      let lookedup4_second = lookup d4 second_key in
+      let d4_old = insert empty second_key second_value in
+      let d4_middle = insert d4_old fourth_key fourth_value in
+      let d4_end = insert d4_middle (D.gen_key_random ()) (D.gen_value ()) in
+      let lookedup4_second = lookup d4_end second_key in
       assert(lookedup4_second = Some second_value);
-      let lookedup4_fourth = lookup d4 fourth_key in
+      let lookedup4_fourth = lookup d4_end fourth_key in
       assert(lookedup4_fourth = Some fourth_value);
-      assert(lookup d4 (D.gen_key_random()) = None);
+      assert(lookup d4_end (D.gen_key_random()) = None);
       ()
 
   let test_member () =
@@ -995,9 +1024,13 @@ struct
     let second_key = D.gen_key_gt first_key () in
     let third_key = D.gen_key_gt second_key () in
     let fourth_key = D.gen_key_gt third_key () in
-    let d4 = Three(Two(Leaf, (first_key,D.gen_value()),  Leaf),
-              (second_key,D.gen_value()), Leaf, (third_key,D.gen_value()),
-              Two(Leaf, (fourth_key,D.gen_value()), Leaf)) in
+    let d4 = insert
+                (insert
+                      (insert
+                            (insert empty fourth_key (D.gen_value()))
+                      third_key (D.gen_value()))
+                second_key (D.gen_value()))
+             first_key (D.gen_value()) in
     assert(member d4 first_key);
     assert(member d4 third_key);
     assert(not(member d4 (D.gen_key_random())));
@@ -1387,8 +1420,6 @@ struct
    ()
 
 end
-
-
 
 (******************************************************************)
 (* Run our tests.                                                 *)

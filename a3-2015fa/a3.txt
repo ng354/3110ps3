@@ -2,14 +2,26 @@ Summarize your solution
 -----------------------
 
 * What was your approach to solving the assignment?
+We began this assignment by understanding it completely and implementing
+crawl. Once we understood the concepts, and how pages were mapped to words and
+other sets of links, we broke it down and efficiently implemented it using
+various data structures (2-3 trees).
+
+
 * Are there any known bugs in your solution?
+Nope!
 
 Feedback on the assignment
 --------------------------
 
 * What was fun about the assignment?
+The fact that we created a search engine! That is super cool.
 * What did you find especially hard?
+Balancing and inserting nodes in the trees.
 * How could the assignment be made more valuable?
+Other uses for some of the data structures that we used in this assignment.
+Overall, we both really learned a lot.
+
 
 Karma
 -----

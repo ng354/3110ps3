@@ -1,7 +1,3 @@
-(*tests for listset and assoclistdic.*)
-
-(* Definitions for sets. *)
-
 exception TODO
 
 (* An interface for set modules *)
@@ -190,7 +186,6 @@ struct
     List.iter (fun k -> assert(not (member s2 k))) elts ;
     ()
 
-  (* test cases for the union of sets *)
   let test_union_1 () =
     let elts = generate_random_list 50 in
     let s1 = insert_list empty elts in
@@ -261,12 +256,10 @@ struct
     assert(is_empty new_s2);
     ()
 
-
   let test_is_empty () =
     let set_empty = empty in
     assert(is_empty set_empty);
     ()
-
 
   let test_singleton () =
     let elt = C.gen_random () in
@@ -667,4 +660,3 @@ module Make(C : COMPARABLE) : (SET with type elt = C.t) =
    * finished. *)
   (* ListSet (C) *)
   DictSet (C)
-

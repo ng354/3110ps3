@@ -5,7 +5,6 @@ open Pagerank
 open LinkSet
 
 
-
 (* RandomWalkRanker and QuantumRanker are for karma questions only *)
 module MoogleRanker
   = InDegreeRanker (PageGraph) (PageScore)
